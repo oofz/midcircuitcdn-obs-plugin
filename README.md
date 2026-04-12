@@ -1,4 +1,4 @@
-# MidcircuitCDN OBS Plugin
+# MidCircuitCDN OBS Plugin
 
 An OBS Studio plugin that provides **1-click Connect** to MidcircuitCDN via Discord OAuth. Once authenticated, the plugin automatically configures your RTMP stream settings — no manual server URLs or stream keys required.
 
