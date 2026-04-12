@@ -37,7 +37,8 @@ jobs:
           $url = "https://github.com/obsproject/obs-studio/archive/refs/tags/$obsVersion.tar.gz"
           Invoke-WebRequest -Uri $url -OutFile obs-sdk.tar.gz
           tar -xzf obs-sdk.tar.gz
-          Rename-Item "obs-studio-$obsVersion" "deps/obs-sdk"
+          New-Item -ItemType Directory -Force -Path "deps"
+          Move-Item "obs-studio-$obsVersion" "deps/obs-sdk"
 
       # ── Configure with CMake (MSVC) ─────────────────────────────────
       - name: Configure
