@@ -1,0 +1,103 @@
+name: Build & Release OBS Plugin
+
+on:
+  push:
+    tags: ['v*']       # Trigger on version tags: v0.1.0, v1.0.0, etc.
+  workflow_dispatch:    # Allow manual trigger from GitHub UI
+
+jobs:
+  build-windows:
+    name: Windows x64 (MSVC + Qt6)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Install Qt 6.7 ──────────────────────────────────────────────
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtbase'
+
+      # ── Download OBS SDK headers ────────────────────────────────────
+      - name: Download OBS SDK
+        shell: pwsh
+        run: |
+          $obsVersion = "30.2.3"
+          $url = "https://github.com/obsproject/obs-studio/archive/refs/tags/$obsVersion.tar.gz"
+          Invoke-WebRequest -Uri $url -OutFile obs-sdk.tar.gz
+          tar -xzf obs-sdk.tar.gz
+          Rename-Item "obs-studio-$obsVersion" "deps/obs-sdk"
+
+      # ── Configure with CMake (MSVC) ─────────────────────────────────
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+
+      # ── Build ───────────────────────────────────────────────────────
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release --parallel
+
+      # ── Package into OBS-compatible directory structure ─────────────
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "package/obs-plugins/64bit"
+          
+          # Find the DLL (Release config puts it in a subfolder)
+          $dll = Get-ChildItem -Path build -Recurse -Filter "midcircuitcdn-obs-plugin.dll" | Select-Object -First 1
+          if (-not $dll) {
+            Write-Error "DLL not found!"
+            exit 1
+          }
+          Copy-Item $dll.FullName "package/obs-plugins/64bit/"
+          
+          Write-Host "Packaged: $($dll.FullName)"
+          Write-Host "Package contents:"
+          Get-ChildItem -Recurse package
+
+      # ── Upload artifact (available on every build) ──────────────────
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: midcircuitcdn-obs-plugin-windows-x64
+          path: package/
+
+  # ── Create GitHub Release (only on version tags) ──────────────────────
+  release:
+    name: Create Release
+    needs: [build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: midcircuitcdn-obs-plugin-windows-x64
+          path: midcircuitcdn-obs-plugin-windows-x64
+
+      - name: Create ZIP
+        run: |
+          cd midcircuitcdn-obs-plugin-windows-x64
+          zip -r ../midcircuitcdn-obs-plugin-${{ github.ref_name }}-windows-x64.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "MidcircuitCDN OBS Plugin ${{ github.ref_name }}"
+          draft: true
+          generate_release_notes: true
+          files: |
+            midcircuitcdn-obs-plugin-${{ github.ref_name }}-windows-x64.zip

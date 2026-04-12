@@ -1,0 +1,12 @@
+LIBRARY obs-frontend-api
+EXPORTS
+    obs_frontend_get_streaming_service
+    obs_frontend_set_streaming_service
+    obs_frontend_save_streaming_service
+    obs_frontend_get_streaming_output
+    obs_frontend_get_profile_config
+    obs_frontend_get_global_config
+    obs_frontend_add_tools_menu_item
+    obs_frontend_add_event_callback
+    obs_frontend_add_dock_by_id
+    obs_frontend_remove_dock

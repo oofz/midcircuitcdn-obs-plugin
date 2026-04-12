@@ -1,0 +1,23 @@
+LIBRARY obs
+EXPORTS
+    blog
+    obs_data_create
+    obs_data_release
+    obs_data_set_string
+    obs_data_get_int
+    obs_data_set_int
+    obs_hotkeys_save_service
+    obs_service_create
+    obs_service_release
+    obs_output_get_video_encoder
+    obs_output_release
+    obs_encoder_get_settings
+    obs_encoder_update
+    config_get_uint
+    config_set_uint
+    config_get_string
+    config_set_string
+    config_save
+    text_lookup_getstr
+    text_lookup_destroy
+    obs_module_load_locale
