@@ -22,6 +22,8 @@
 
 #include "../multistream/multistream_output.hpp"
 
+class UpdateChecker;
+
 class McdnControlPanel : public QWidget {
 	Q_OBJECT
 
@@ -55,8 +57,14 @@ private:
 	QLabel *m_statusLabel = nullptr;
 	QLabel *m_slugLabel = nullptr;
 	QWidget *m_destinationBanner = nullptr;
+	QLabel *m_versionLabel = nullptr;
+	QWidget *m_updateBanner = nullptr;
 
 	MultistreamOutputManager *m_outputMgr = nullptr;
+	UpdateChecker *m_updateChecker = nullptr;
+
+	void OnUpdateAvailable(const QString &version,
+			       const QString &downloadUrl);
 };
 
 /* Register / Unregister the dock with OBS */

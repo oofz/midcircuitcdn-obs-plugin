@@ -34,15 +34,15 @@ set(OBS_INCLUDE_DIRS
 
 # ── Qt (for UI dialogs & native dock panels) ──────────────────────────────────
 # OBS 30+ uses Qt6. When Qt is found, we enable native dock widgets.
-find_package(Qt6 COMPONENTS Core Widgets QUIET)
+find_package(Qt6 COMPONENTS Core Widgets Network QUIET)
 if(Qt6_FOUND)
-    set(QT_LIBS Qt6::Core Qt6::Widgets)
+    set(QT_LIBS Qt6::Core Qt6::Widgets Qt6::Network)
     set(HAVE_QT ON)
     message(STATUS "Found Qt6 — native dock panels enabled")
 else()
-    find_package(Qt5 5.15 COMPONENTS Core Widgets QUIET)
+    find_package(Qt5 5.15 COMPONENTS Core Widgets Network QUIET)
     if(Qt5_FOUND)
-        set(QT_LIBS Qt5::Core Qt5::Widgets)
+        set(QT_LIBS Qt5::Core Qt5::Widgets Qt5::Network)
         set(HAVE_QT ON)
         message(STATUS "Found Qt5 — native dock panels enabled")
     else()
@@ -76,6 +76,7 @@ if(HAVE_QT)
     list(APPEND PLUGIN_SOURCES
         src/ui/control_dock.cpp
         src/ui/multistream_dialog.cpp
+        src/update_checker.cpp
     )
 endif()
 

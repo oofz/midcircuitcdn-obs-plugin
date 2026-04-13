@@ -5,7 +5,7 @@
 #pragma once
 
 #define PLUGIN_NAME "midcircuitcdn-obs-plugin"
-#define PLUGIN_VERSION "0.1.0"
+#define PLUGIN_VERSION "0.2.1"
 
 /* Logging convenience macro: blog(LOG_INFO, "[MidcircuitCDN] %s", msg) */
 #ifndef MCDN_LOG

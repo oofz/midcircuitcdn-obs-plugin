@@ -19,6 +19,7 @@
 #include "../obs_integration/stream_config.hpp"
 #include "../obs_integration/encoder_config.hpp"
 #include "../multistream/multistream_store.hpp"
+#include "../update_checker.hpp"
 
 #include <obs-module.h>
 #include <obs-frontend-api.h>
@@ -31,6 +32,8 @@
 #include <QTimer>
 #include <QGroupBox>
 #include <QDockWidget>
+#include <QDesktopServices>
+#include <QUrl>
 
 /* ── Dark-theme stylesheet matching OBS's look ───────────────────────── */
 static const char *PANEL_STYLE = R"(
@@ -143,6 +146,21 @@ static const char *PANEL_STYLE = R"(
         color: #f38ba8;
         font-size: 11px;
     }
+    QLabel#versionLabel {
+        color: #585b70;
+        font-size: 9px;
+        padding: 2px 0px;
+    }
+    QWidget#updateBanner {
+        background: #7c3aed;
+        border-radius: 4px;
+        padding: 6px 10px;
+    }
+    QLabel#updateText {
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: bold;
+    }
 )";
 
 /* ── Constructor ──────────────────────────────────────────────────────── */
@@ -164,6 +182,18 @@ McdnControlPanel::McdnControlPanel(QWidget *parent) : QWidget(parent)
 
 	/* Create output manager */
 	m_outputMgr = new MultistreamOutputManager();
+
+	/* Version label (bottom-right, added after UpdateState populates) */
+	m_versionLabel = new QLabel(
+		QString("v%1").arg(PLUGIN_VERSION), this);
+	m_versionLabel->setObjectName("versionLabel");
+	m_versionLabel->setAlignment(Qt::AlignRight);
+
+	/* Start update checker */
+	m_updateChecker = new UpdateChecker(this);
+	connect(m_updateChecker, &UpdateChecker::UpdateAvailable, this,
+		&McdnControlPanel::OnUpdateAvailable);
+	m_updateChecker->CheckForUpdate();
 
 	UpdateState();
 }
@@ -298,6 +328,12 @@ void McdnControlPanel::BuildConnectedUI()
 	/* placeholder — will be populated by OnStreamingStarted() */
 
 	/* Log Out button is now inline with the slug row above */
+
+	/* ── Spacer + version label at bottom ──────────────────────── */
+	m_mainLayout->addStretch(1);
+	if (m_updateBanner)
+		m_mainLayout->addWidget(m_updateBanner);
+	m_mainLayout->addWidget(m_versionLabel);
 }
 
 /* ── Build the "disconnected" UI ──────────────────────────────────────── */
@@ -315,15 +351,85 @@ void McdnControlPanel::BuildDisconnectedUI()
 	connect(m_connectBtn, &QPushButton::clicked, this,
 		&McdnControlPanel::OnConnectClicked);
 	m_mainLayout->addWidget(m_connectBtn);
+
+	/* ── Spacer + version label at bottom ──────────────────────── */
+	m_mainLayout->addStretch(1);
+	if (m_updateBanner)
+		m_mainLayout->addWidget(m_updateBanner);
+	m_mainLayout->addWidget(m_versionLabel);
+}
+
+/* ── Update Available Handler ─────────────────────────────────────────── */
+void McdnControlPanel::OnUpdateAvailable(const QString &version,
+					 const QString &downloadUrl)
+{
+	if (m_updateBanner)
+		return; /* already showing */
+
+	/* Build the banner as a styled QPushButton (easy click handling) */
+	auto *btn = new QPushButton(
+		QString::fromUtf8(
+			"\xe2\xac\x87  Update v%1 available \xe2\x80\x94 "
+			"click to download")
+			.arg(version),
+		this);
+	btn->setObjectName("updateBanner");
+	btn->setCursor(Qt::PointingHandCursor);
+	btn->setStyleSheet(
+		"QPushButton#updateBanner {"
+		"  background: #7c3aed;"
+		"  color: #ffffff;"
+		"  border: none;"
+		"  border-radius: 4px;"
+		"  padding: 8px 10px;"
+		"  font-size: 11px;"
+		"  font-weight: bold;"
+		"  text-align: left;"
+		"}"
+		"QPushButton#updateBanner:hover {"
+		"  background: #6d28d9;"
+		"}");
+
+	QString url = downloadUrl;
+	connect(btn, &QPushButton::clicked, this, [url]() {
+		QDesktopServices::openUrl(QUrl(url));
+	});
+
+	m_updateBanner = btn;
+
+	/* Insert before version label (second-to-last) */
+	if (m_mainLayout->count() > 0) {
+		int idx = m_mainLayout->indexOf(m_versionLabel);
+		if (idx >= 0)
+			m_mainLayout->insertWidget(idx, m_updateBanner);
+		else
+			m_mainLayout->addWidget(m_updateBanner);
+	}
+
+	/* Update version label to show comparison */
+	m_versionLabel->setText(
+		QString("v%1 (v%2 available)").arg(PLUGIN_VERSION).arg(version));
 }
 
 /* ── Clear dynamic widgets (keep title) ───────────────────────────────── */
 void McdnControlPanel::ClearLayout()
 {
+	/*
+	 * Remove version label and update banner from layout
+	 * before clearing — we reuse them across state changes.
+	 */
+	if (m_versionLabel)
+		m_mainLayout->removeWidget(m_versionLabel);
+	if (m_updateBanner)
+		m_mainLayout->removeWidget(m_updateBanner);
+
 	/* Remove everything except the title (item 0) */
 	while (m_mainLayout->count() > 1) {
 		auto *item = m_mainLayout->takeAt(1);
 		if (QWidget *w = item->widget()) {
+			/* Don't delete preserved widgets */
+			if (w == m_versionLabel || w == m_updateBanner)
+				continue;
 			w->deleteLater();
 		} else if (QLayout *childLayout = item->layout()) {
 			/* Drain child widgets from the sub-layout */
