@@ -3,7 +3,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  * A native Qt dock panel that appears in OBS like the Controls panel.
  * Shows a 1-click Connect button when disconnected, and status + gear
- * icon when connected.
+ * icon when connected. Includes multistream setup and destination banner.
  *
  * Uses obs_frontend_add_dock_by_id() (OBS 30+) to register as a
  * first-class draggable/dockable panel.
@@ -12,11 +12,13 @@
 #ifdef HAVE_QT
 
 #include "control_dock.hpp"
+#include "multistream_dialog.hpp"
 #include "../plugin-macros.h"
 #include "../auth/plugin_oauth.hpp"
 #include "../auth/plugin_store.hpp"
 #include "../obs_integration/stream_config.hpp"
 #include "../obs_integration/encoder_config.hpp"
+#include "../multistream/multistream_store.hpp"
 
 #include <obs-module.h>
 #include <obs-frontend-api.h>
@@ -26,6 +28,7 @@
 #include <QIcon>
 #include <QApplication>
 #include <QTimer>
+#include <QGroupBox>
 
 /* ── Dark-theme stylesheet matching OBS's look ───────────────────────── */
 static const char *PANEL_STYLE = R"(
@@ -49,17 +52,30 @@ static const char *PANEL_STYLE = R"(
     QPushButton#connectBtn:pressed {
         background-color: #6d28d9;
     }
-    QPushButton#disconnectBtn {
+    QPushButton#logoutBtn {
         background-color: transparent;
-        color: #f38ba8;
-        border: 1px solid #f38ba8;
-        border-radius: 4px;
-        padding: 4px 10px;
-        font-size: 11px;
+        color: #6c7086;
+        border: none;
+        padding: 2px 6px;
+        font-size: 10px;
     }
-    QPushButton#disconnectBtn:hover {
-        background-color: #f38ba8;
-        color: #1e1e2e;
+    QPushButton#logoutBtn:hover {
+        color: #a6adc8;
+        text-decoration: underline;
+    }
+    QPushButton#multistreamBtn {
+        background-color: #313244;
+        color: #cdd6f4;
+        border: 1px solid #45475a;
+        border-radius: 4px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    QPushButton#multistreamBtn:hover {
+        background-color: #45475a;
+        border-color: #7c3aed;
+        color: #cba6f7;
     }
     QLabel#statusLabel {
         color: #a6e3a1;
@@ -106,6 +122,25 @@ static const char *PANEL_STYLE = R"(
         background: #45475a;
         border-color: #585b70;
     }
+    QWidget#destinationBanner {
+        background: #181825;
+        border: 1px solid #313244;
+        border-radius: 4px;
+        padding: 6px;
+    }
+    QLabel#bannerTitle {
+        color: #89b4fa;
+        font-weight: bold;
+        font-size: 11px;
+    }
+    QLabel#destActive {
+        color: #a6e3a1;
+        font-size: 11px;
+    }
+    QLabel#destInactive {
+        color: #f38ba8;
+        font-size: 11px;
+    }
 )";
 
 /* ── Constructor ──────────────────────────────────────────────────────── */
@@ -125,7 +160,20 @@ McdnControlPanel::McdnControlPanel(QWidget *parent) : QWidget(parent)
 	titleLabel->setAlignment(Qt::AlignCenter);
 	m_mainLayout->addWidget(titleLabel);
 
+	/* Create output manager */
+	m_outputMgr = new MultistreamOutputManager();
+
 	UpdateState();
+}
+
+/* ── Destructor ──────────────────────────────────────────────────────── */
+McdnControlPanel::~McdnControlPanel()
+{
+	if (m_outputMgr) {
+		m_outputMgr->StopAllOutputs();
+		delete m_outputMgr;
+		m_outputMgr = nullptr;
+	}
 }
 
 /* ── Update UI based on connection state ──────────────────────────────── */
@@ -157,13 +205,25 @@ void McdnControlPanel::BuildConnectedUI()
 	m_statusLabel->setAlignment(Qt::AlignCenter);
 	m_mainLayout->addWidget(m_statusLabel);
 
-	/* Stream slug */
+	/* Stream slug + Log Out row */
 	if (!creds.stream_slug.empty()) {
+		auto *slugRow = new QHBoxLayout();
+		slugRow->setSpacing(4);
+		slugRow->addStretch(1);
+
 		m_slugLabel = new QLabel(
 			QString::fromStdString(creds.stream_slug), this);
 		m_slugLabel->setObjectName("slugLabel");
-		m_slugLabel->setAlignment(Qt::AlignCenter);
-		m_mainLayout->addWidget(m_slugLabel);
+		slugRow->addWidget(m_slugLabel);
+
+		m_disconnectBtn = new QPushButton("Log Out", this);
+		m_disconnectBtn->setObjectName("logoutBtn");
+		connect(m_disconnectBtn, &QPushButton::clicked, this,
+			&McdnControlPanel::OnDisconnectClicked);
+		slugRow->addWidget(m_disconnectBtn);
+
+		slugRow->addStretch(1);
+		m_mainLayout->addLayout(slugRow);
 	}
 
 	/* ── Stream URL section ─────────────────────────────────────── */
@@ -215,12 +275,27 @@ void McdnControlPanel::BuildConnectedUI()
 		m_mainLayout->addLayout(hlsRow);
 	}
 
-	/* Disconnect button */
-	m_disconnectBtn = new QPushButton("Disconnect", this);
-	m_disconnectBtn->setObjectName("disconnectBtn");
-	connect(m_disconnectBtn, &QPushButton::clicked, this,
-		&McdnControlPanel::OnDisconnectClicked);
-	m_mainLayout->addWidget(m_disconnectBtn);
+	/* ── Multistream button ────────────────────────────────────── */
+	m_multistreamBtn = new QPushButton(
+		QString::fromUtf8("\xe2\x86\x94 Multistream"), this);
+	m_multistreamBtn->setObjectName("multistreamBtn");
+	connect(m_multistreamBtn, &QPushButton::clicked, this,
+		&McdnControlPanel::OnMultistreamClicked);
+
+	/* Show indicator if multistream is active */
+	if (HasAnyMultistreamEnabled()) {
+		auto enabled = GetEnabledTargets();
+		QString label = QString::fromUtf8("\xe2\x86\x94 Multistream (%1)")
+					.arg(enabled.size());
+		m_multistreamBtn->setText(label);
+	}
+
+	m_mainLayout->addWidget(m_multistreamBtn);
+
+	/* ── Destination banner (shown while streaming) ────────────── */
+	/* placeholder — will be populated by OnStreamingStarted() */
+
+	/* Log Out button is now inline with the slug row above */
 }
 
 /* ── Build the "disconnected" UI ──────────────────────────────────────── */
@@ -266,8 +341,89 @@ void McdnControlPanel::ClearLayout()
 	}
 	m_connectBtn = nullptr;
 	m_disconnectBtn = nullptr;
+	m_multistreamBtn = nullptr;
 	m_statusLabel = nullptr;
 	m_slugLabel = nullptr;
+	m_destinationBanner = nullptr;
+}
+
+/* ── Build / Hide destination banner ──────────────────────────────────── */
+
+void McdnControlPanel::BuildDestinationBanner()
+{
+	HideDestinationBanner();
+
+	auto enabledTargets = GetEnabledTargets();
+
+	/* Only show banner if multistream is active or always show MCDN */
+	m_destinationBanner = new QWidget(this);
+	m_destinationBanner->setObjectName("destinationBanner");
+	auto *bannerLayout = new QVBoxLayout(m_destinationBanner);
+	bannerLayout->setContentsMargins(8, 6, 8, 6);
+	bannerLayout->setSpacing(3);
+
+	auto *bannerTitle = new QLabel("Streaming to:", m_destinationBanner);
+	bannerTitle->setObjectName("bannerTitle");
+	bannerLayout->addWidget(bannerTitle);
+
+	/* MidcircuitCDN row (always active when streaming) */
+	auto *mcdnRow =
+		new QLabel(QString::fromUtf8("\xe2\x97\x89 MidcircuitCDN"),
+			   m_destinationBanner);
+	mcdnRow->setObjectName("destActive");
+	bannerLayout->addWidget(mcdnRow);
+
+	/* Multistream target rows */
+	for (const auto &t : enabledTargets) {
+		auto *row = new QLabel(
+			QString::fromUtf8("\xe2\x97\x89 ") +
+				QString::fromStdString(t.display_name),
+			m_destinationBanner);
+		row->setObjectName("destActive");
+		bannerLayout->addWidget(row);
+	}
+
+	/* Insert banner before the disconnect button
+	 * (disconnect is the last widget) */
+	int insertIdx = m_mainLayout->count() - 1;
+	if (insertIdx < 1)
+		insertIdx = m_mainLayout->count();
+	m_mainLayout->insertWidget(insertIdx, m_destinationBanner);
+}
+
+void McdnControlPanel::HideDestinationBanner()
+{
+	if (m_destinationBanner) {
+		m_mainLayout->removeWidget(m_destinationBanner);
+		m_destinationBanner->deleteLater();
+		m_destinationBanner = nullptr;
+	}
+}
+
+/* ── Streaming event handlers ─────────────────────────────────────────── */
+
+void McdnControlPanel::OnStreamingStarted()
+{
+	MCDN_LOG(LOG_INFO, "Control dock: streaming started — "
+			   "starting multistream outputs");
+
+	if (m_outputMgr && HasAnyMultistreamEnabled()) {
+		m_outputMgr->StartAllOutputs();
+	}
+
+	BuildDestinationBanner();
+}
+
+void McdnControlPanel::OnStreamingStopped()
+{
+	MCDN_LOG(LOG_INFO, "Control dock: streaming stopped — "
+			   "stopping multistream outputs");
+
+	if (m_outputMgr) {
+		m_outputMgr->StopAllOutputs();
+	}
+
+	HideDestinationBanner();
 }
 
 /* ── Slot: Connect clicked ────────────────────────────────────────────── */
@@ -323,6 +479,9 @@ void McdnControlPanel::OnDisconnectClicked()
 	MCDN_LOG(LOG_INFO, "Control dock: disconnecting...");
 	ClearCredentials();
 
+	/* NOTE: Multistream keys are intentionally NOT cleared here.
+	 * They persist across MidcircuitCDN connect/disconnect cycles. */
+
 	/*
 	 * IMPORTANT: We cannot call UpdateState() directly here.
 	 * UpdateState → ClearLayout deletes m_disconnectBtn, which is the
@@ -334,11 +493,41 @@ void McdnControlPanel::OnDisconnectClicked()
 	QTimer::singleShot(0, this, [this]() { UpdateState(); });
 }
 
+/* ── Slot: Multistream button clicked ─────────────────────────────────── */
+void McdnControlPanel::OnMultistreamClicked()
+{
+	MCDN_LOG(LOG_INFO, "Control dock: opening multistream dialog");
+
+	MultistreamDialog dialog(this);
+	if (dialog.exec() == QDialog::Accepted) {
+		/* Update the button label to reflect new state */
+		if (HasAnyMultistreamEnabled()) {
+			auto enabled = GetEnabledTargets();
+			QString label =
+				QString::fromUtf8(
+					"\xe2\x86\x94 Multistream (%1)")
+					.arg(enabled.size());
+			if (m_multistreamBtn)
+				m_multistreamBtn->setText(label);
+		} else {
+			if (m_multistreamBtn)
+				m_multistreamBtn->setText(
+					QString::fromUtf8(
+						"\xe2\x86\x94 Multistream"));
+		}
+	}
+}
+
 /* ═══════════════════════════════════════════════════════════════════════ */
 /* ── Registration with OBS ────────────────────────────────────────────── */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
 static McdnControlPanel *g_panel = nullptr;
+
+McdnControlPanel *GetControlPanel()
+{
+	return g_panel;
+}
 
 void RegisterControlDock()
 {

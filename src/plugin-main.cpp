@@ -3,6 +3,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  * Provides a seamless "Connect Account" experience for MidcircuitCDN users.
  * Automatically configures stream URL, key, and caps video bitrate.
+ * Supports multistreaming to Twitch, Kick, YouTube, and X.
  *
  * Copyright (C) 2026 MidcircuitCDN
  * Licensed under GPLv2 (required by OBS plugin distribution).
@@ -34,7 +35,8 @@ const char *obs_module_name(void)
 const char *obs_module_description(void)
 {
 	return "Connect your MidcircuitCDN account to automatically configure "
-	       "stream settings, URL, key, and bitrate cap.";
+	       "stream settings, URL, key, and bitrate cap. "
+	       "Supports multistreaming to Twitch, Kick, YouTube, and X.";
 }
 
 /* ── Frontend event callback ────────────────────────────────────────────── */
@@ -62,6 +64,27 @@ static void OnFrontendEvent(enum obs_frontend_event event, void *data)
 				 creds.stream_slug.c_str());
 		}
 	}
+
+	/*
+	 * Multistream auto-start/stop.
+	 *
+	 * We use STREAMING_STARTED (not STARTING) because the main
+	 * output's encoders are fully initialized by this point, which
+	 * is required for encoder sharing.
+	 */
+#ifdef HAVE_QT
+	if (event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
+		auto *panel = GetControlPanel();
+		if (panel) {
+			panel->OnStreamingStarted();
+		}
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) {
+		auto *panel = GetControlPanel();
+		if (panel) {
+			panel->OnStreamingStopped();
+		}
+	}
+#endif
 }
 
 /* ── Module Lifecycle ───────────────────────────────────────────────────── */
