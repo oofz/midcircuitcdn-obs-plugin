@@ -1,11 +1,11 @@
 /*
- * MidcircuitCDN OBS Plugin — OAuth Loopback Server
+ * MidCircuitCDN OBS Plugin — OAuth Loopback Server
  * ────────────────────────────────────────────────────────────────────────────
  * Manages the local HTTP loopback for Discord OAuth credential handoff.
  *
  * Flow:
  *   1. Plugin binds an ephemeral port and generates a CSRF `state` token.
- *   2. Opens browser to: midcircuitcdn.com/login?plugin_auth_port=PORT&state=STATE
+ *   2. Opens browser to: MidCircuitCDN.com/login?plugin_auth_port=PORT&state=STATE
  *   3. User completes Discord OAuth on the Next.js frontend.
  *   4. Next.js redirects to: http://localhost:PORT/auth?slug=...&key=...&state=STATE
  *   5. This server validates `state`, extracts credentials, serves success page.
@@ -31,7 +31,7 @@ using OAuthCallback = std::function<void(const PluginCredentials &creds)>;
  * Start the full OAuth flow:
  *   - Binds a local loopback server to an ephemeral port.
  *   - Generates a cryptographic state token.
- *   - Opens the user's default browser to the MidcircuitCDN login page.
+ *   - Opens the user's default browser to the MidCircuitCDN login page.
  *   - Waits for the redirect (up to timeout_seconds).
  *   - Validates the state token.
  *   - Calls `on_success` with the parsed credentials.

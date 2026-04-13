@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Local Credential Store (Implementation)
+ * MidCircuitCDN OBS Plugin — Local Credential Store (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * Uses OBS's config API (obs_data / global config) for persistence.
  */
@@ -11,7 +11,7 @@
 #include <obs-frontend-api.h>
 #include <util/config-file.h>
 
-static const char *CONFIG_SECTION = "MidcircuitCDN";
+static const char *CONFIG_SECTION = "MidCircuitCDN";
 static const char *KEY_SLUG = "stream_slug";
 static const char *KEY_STREAM_KEY = "stream_key";
 static const char *KEY_SERVER_URL = "server_url";
@@ -57,7 +57,7 @@ bool LoadCredentials(PluginCredentials &out_creds)
 	out_creds.stream_key = key;
 	out_creds.server_url =
 		(url && *url) ? url
-			      : "rtmp://live.midcircuitcdn.com/live";
+			      : "rtmp://live.MidCircuitCDN.com/live";
 
 	return true;
 }

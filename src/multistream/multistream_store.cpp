@@ -1,8 +1,8 @@
 /*
- * MidcircuitCDN OBS Plugin — Multistream Config Store (Implementation)
+ * MidCircuitCDN OBS Plugin — Multistream Config Store (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * Uses OBS's global config (global.ini) for persistence, same pattern as
- * auth/plugin_store.cpp. All keys live under [MidcircuitCDN_Multistream].
+ * auth/plugin_store.cpp. All keys live under [MidCircuitCDN_Multistream].
  */
 
 #include "multistream_store.hpp"
@@ -12,7 +12,7 @@
 #include <obs-frontend-api.h>
 #include <util/config-file.h>
 
-static const char *CONFIG_SECTION = "MidcircuitCDN_Multistream";
+static const char *CONFIG_SECTION = "MidCircuitCDN_Multistream";
 
 /* ── Suffix helpers for config keys ────────────────────────────────────── */
 

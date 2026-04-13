@@ -1,8 +1,8 @@
 /*
- * MidcircuitCDN OBS Plugin — Local Credential Store
+ * MidCircuitCDN OBS Plugin — Local Credential Store
  * ────────────────────────────────────────────────────────────────────────────
  * Persists stream credentials to the OBS global config so they survive
- * restarts. Stored under the [MidcircuitCDN] section in OBS's global.ini.
+ * restarts. Stored under the [MidCircuitCDN] section in OBS's global.ini.
  */
 
 #pragma once

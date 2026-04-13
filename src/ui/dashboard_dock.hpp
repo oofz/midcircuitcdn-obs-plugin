@@ -1,7 +1,7 @@
 /*
- * MidcircuitCDN OBS Plugin — Dashboard Dock
+ * MidCircuitCDN OBS Plugin — Dashboard Dock
  * ────────────────────────────────────────────────────────────────────────────
- * Registers a custom browser dock inside OBS that loads the MidcircuitCDN
+ * Registers a custom browser dock inside OBS that loads the MidCircuitCDN
  * dashboard. Users can manage restreaming targets (Twitch, YouTube, Kick)
  * directly from within OBS without opening a separate browser.
  */
@@ -9,7 +9,7 @@
 #pragma once
 
 /*
- * Register the MidcircuitCDN Dashboard browser dock.
+ * Register the MidCircuitCDN Dashboard browser dock.
  * Uses OBS's built-in CEF browser panel support.
  * Should be called from obs_module_load().
  */

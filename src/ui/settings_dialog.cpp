@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Settings Dialog (Implementation)
+ * MidCircuitCDN OBS Plugin — Settings Dialog (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * Uses obs_frontend_add_tools_menu_item to hook into the OBS Tools menu.
  * When clicked, it either starts the OAuth flow or shows current status.
@@ -62,7 +62,7 @@ static void OnToolsMenuClicked(void *data)
 	}
 
 	/* Not connected — start OAuth */
-	MCDN_LOG(LOG_INFO, "Starting MidcircuitCDN OAuth flow...");
+	MCDN_LOG(LOG_INFO, "Starting MidCircuitCDN OAuth flow...");
 	StartOAuthFlow(OnCredentialsReceived);
 }
 
@@ -70,7 +70,7 @@ static void OnToolsMenuClicked(void *data)
 
 void RegisterSettingsMenu()
 {
-	obs_frontend_add_tools_menu_item("Connect MidcircuitCDN",
+	obs_frontend_add_tools_menu_item("Connect MidCircuitCDN",
 					 OnToolsMenuClicked, nullptr);
 	MCDN_LOG(LOG_INFO, "Tools menu item registered");
 }

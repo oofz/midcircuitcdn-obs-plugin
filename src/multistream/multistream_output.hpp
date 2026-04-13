@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Multistream Output Manager
+ * MidCircuitCDN OBS Plugin — Multistream Output Manager
  * ────────────────────────────────────────────────────────────────────────────
  * Creates and manages additional OBS RTMP outputs that share the main
  * stream's video/audio encoders. Zero extra encoding overhead.

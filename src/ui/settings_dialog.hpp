@@ -1,7 +1,7 @@
 /*
- * MidcircuitCDN OBS Plugin — Settings Dialog
+ * MidCircuitCDN OBS Plugin — Settings Dialog
  * ────────────────────────────────────────────────────────────────────────────
- * Provides the "Connect MidcircuitCDN" UI accessible from the OBS Tools menu.
+ * Provides the "Connect MidCircuitCDN" UI accessible from the OBS Tools menu.
  * Displays connection status and triggers the OAuth flow.
  *
  * Note: This uses OBS's built-in properties API rather than raw Qt
@@ -12,7 +12,7 @@
 #pragma once
 
 /*
- * Register the "MidcircuitCDN Settings" item in the OBS Tools menu.
+ * Register the "MidCircuitCDN Settings" item in the OBS Tools menu.
  * Should be called from obs_module_load().
  */
 void RegisterSettingsMenu();

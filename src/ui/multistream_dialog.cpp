@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Multistream Settings Dialog (Implementation)
+ * MidCircuitCDN OBS Plugin — Multistream Settings Dialog (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * Qt modal dialog for configuring multistream targets.
  *

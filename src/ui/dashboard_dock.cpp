@@ -1,7 +1,7 @@
 /*
- * MidcircuitCDN OBS Plugin — Dashboard Dock (Implementation)
+ * MidCircuitCDN OBS Plugin — Dashboard Dock (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
- * Registers a custom browser dock in OBS that points to the MidcircuitCDN
+ * Registers a custom browser dock in OBS that points to the MidCircuitCDN
  * web dashboard. The dashboard provides:
  *   - Account overview
  *   - Restream target management (Twitch, YouTube, Kick)
@@ -32,7 +32,7 @@
 
 /* ── Dashboard URL ────────────────────────────────────────────────────── */
 static const char *MCDN_DASHBOARD_BASE =
-	"https://midcircuitcdn.com/dashboard";
+	"https://MidCircuitCDN.com/dashboard";
 
 /* Build the dashboard URL, embedding the user's slug for context */
 static std::string BuildDashboardUrl()
@@ -99,7 +99,7 @@ void RegisterDashboardDock()
 	 */
 
 	obs_frontend_add_tools_menu_item(
-		"MidcircuitCDN Dashboard",
+		"MidCircuitCDN Dashboard",
 		[](void *) {
 			std::string url = BuildDashboardUrl();
 			MCDN_LOG(LOG_INFO, "Opening dashboard: %s",

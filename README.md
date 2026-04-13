@@ -7,14 +7,14 @@ An OBS Studio plugin that provides **1-click Connect** to MidCircuitCDN via Disc
 - **Discord OAuth Login** — Authenticate directly from within OBS using your Discord account.
 - **Auto-Configuration** — RTMP ingest URL and stream key are set automatically after login.
 - **Zero Configuration** — Just click Connect and start streaming.
-- **Multistreaming** — Stream to MidcircuitCDN and up to 4 other platforms simultaneously:
+- **Multistreaming** — Stream to MidCircuitCDN and up to 4 other platforms simultaneously:
   - **Twitch** — Enter your stream key and go.
   - **Kick** — Paste your server URL and stream key from the Kick Creator Dashboard.
   - **YouTube** — Enter your stream key from YouTube Studio.
   - **X** — Paste your server URL and stream key from X Media Studio.
 - **Zero Extra CPU** — Multistream outputs share the main encoder, so there is no additional encoding overhead.
 - **Auto Start/Stop** — Enabled multistream destinations start automatically when you begin streaming and stop when you end.
-- **Persistent Keys** — Stream keys are saved and persist across sessions and MidcircuitCDN disconnects.
+- **Persistent Keys** — Stream keys are saved and persist across sessions and MidCircuitCDN disconnects.
 
 ## Multistream Setup
 
@@ -34,18 +34,18 @@ An OBS Studio plugin that provides **1-click Connect** to MidCircuitCDN via Disc
 
 ## Installation
 
-1. Download the latest `.zip` from the [Releases](https://github.com/oofz/midcircuitcdn-obs-plugin/releases) page.
+1. Download the latest `.zip` from the [Releases](https://github.com/oofz/MidCircuitCDN-obs-plugin/releases) page.
 2. Extract the zip contents into your OBS Studio installation directory (e.g. `C:\Program Files\obs-studio\`).
    - This will place the plugin DLL into `obs-plugins/64bit/`.
 3. Restart OBS Studio.
-4. The MidcircuitCDN dock will appear — click **Connect** to authenticate via Discord.
+4. The MidCircuitCDN dock will appear — click **Connect** to authenticate via Discord.
 
 ## Building from Source
 
 ```bash
 # Clone
-git clone https://github.com/oofz/midcircuitcdn-obs-plugin.git
-cd midcircuitcdn-obs-plugin
+git clone https://github.com/oofz/MidCircuitCDN-obs-plugin.git
+cd MidCircuitCDN-obs-plugin
 
 # Download OBS SDK into deps/
 # (The CI workflow does this automatically)

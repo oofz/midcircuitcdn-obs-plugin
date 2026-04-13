@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Control Panel Dock Widget (Implementation)
+ * MidCircuitCDN OBS Plugin — Control Panel Dock Widget (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * A native Qt dock panel that appears in OBS like the Controls panel.
  * Shows a 1-click Connect button when disconnected, and status + gear
@@ -176,7 +176,7 @@ McdnControlPanel::McdnControlPanel(QWidget *parent) : QWidget(parent)
 	m_mainLayout->setSpacing(6);
 
 	/* Title row */
-	auto *titleLabel = new QLabel("MidcircuitCDN", this);
+	auto *titleLabel = new QLabel("MidCircuitCDN", this);
 	titleLabel->setObjectName("titleLabel");
 	titleLabel->setAlignment(Qt::AlignCenter);
 	m_mainLayout->addWidget(titleLabel);
@@ -268,7 +268,7 @@ void McdnControlPanel::BuildConnectedUI()
 		rtspTitle->setObjectName("urlSectionLabel");
 		m_mainLayout->addWidget(rtspTitle);
 
-		QString rtspUrl = QString("rtspt://stream.midcircuitcdn.com/live/%1").arg(slug);
+		QString rtspUrl = QString("rtspt://stream.MidCircuitCDN.com/live/%1").arg(slug);
 		auto *rtspRow = new QHBoxLayout();
 		rtspRow->setSpacing(4);
 		auto *rtspLabel = new QLabel(rtspUrl, this);
@@ -290,7 +290,7 @@ void McdnControlPanel::BuildConnectedUI()
 		hlsTitle->setObjectName("urlSectionLabel");
 		m_mainLayout->addWidget(hlsTitle);
 
-		QString hlsUrl = QString("https://stream.midcircuitcdn.com/live/%1/index.m3u8").arg(slug);
+		QString hlsUrl = QString("https://stream.MidCircuitCDN.com/live/%1/index.m3u8").arg(slug);
 		auto *hlsRow = new QHBoxLayout();
 		hlsRow->setSpacing(4);
 		auto *hlsLabel = new QLabel(hlsUrl, this);
@@ -470,9 +470,9 @@ void McdnControlPanel::BuildDestinationBanner()
 	bannerTitle->setObjectName("bannerTitle");
 	bannerLayout->addWidget(bannerTitle);
 
-	/* MidcircuitCDN row (always active when streaming) */
+	/* MidCircuitCDN row (always active when streaming) */
 	auto *mcdnRow =
-		new QLabel(QString::fromUtf8("\xe2\x97\x89 MidcircuitCDN"),
+		new QLabel(QString::fromUtf8("\xe2\x97\x89 MidCircuitCDN"),
 			   m_destinationBanner);
 	mcdnRow->setObjectName("destActive");
 	bannerLayout->addWidget(mcdnRow);
@@ -540,7 +540,7 @@ void McdnControlPanel::OnConnectClicked()
 	}
 
 	MCDN_LOG(LOG_INFO,
-		 "Control dock: starting MidcircuitCDN OAuth flow...");
+		 "Control dock: starting MidCircuitCDN OAuth flow...");
 
 	/* Start OAuth — on success, update the panel */
 	StartOAuthFlow([this](const PluginCredentials &creds) {
@@ -560,7 +560,7 @@ void McdnControlPanel::OnConnectClicked()
 
 				/*
 				 * Build the RTMP stream key in the format
-				 * required by MidcircuitCDN's ingest:
+				 * required by MidCircuitCDN's ingest:
 				 *   {slug}?key={raw_key}
 				 * e.g. heist?key=live_01e0181d7cd2ca20e98e09d2
 				 */
@@ -584,7 +584,7 @@ void McdnControlPanel::OnDisconnectClicked()
 	ClearCredentials();
 
 	/* NOTE: Multistream keys are intentionally NOT cleared here.
-	 * They persist across MidcircuitCDN connect/disconnect cycles. */
+	 * They persist across MidCircuitCDN connect/disconnect cycles. */
 
 	/*
 	 * IMPORTANT: We cannot call UpdateState() directly here.
@@ -639,8 +639,8 @@ void RegisterControlDock()
 	g_panel = new McdnControlPanel();
 
 	/* Register as a dockable panel in OBS */
-	bool ok = obs_frontend_add_dock_by_id("midcircuitcdn-control",
-					      "MidcircuitCDN",
+	bool ok = obs_frontend_add_dock_by_id("MidCircuitCDN-control",
+					      "MidCircuitCDN",
 					      (void *)g_panel);
 
 	if (ok) {
@@ -662,9 +662,9 @@ void RegisterControlDock()
 		config_t *cfg = obs_frontend_get_global_config();
 		if (cfg) {
 			bool initialized = config_get_bool(
-				cfg, "MidcircuitCDN", "dock_initialized");
+				cfg, "MidCircuitCDN", "dock_initialized");
 			if (!initialized) {
-				config_set_bool(cfg, "MidcircuitCDN",
+				config_set_bool(cfg, "MidCircuitCDN",
 						"dock_initialized", true);
 				config_save(cfg);
 
@@ -710,7 +710,7 @@ void RegisterControlDock()
 void UnregisterControlDock()
 {
 	if (g_panel) {
-		obs_frontend_remove_dock("midcircuitcdn-control");
+		obs_frontend_remove_dock("MidCircuitCDN-control");
 		/* OBS owns the widget after add_dock_by_id, don't delete */
 		g_panel = nullptr;
 		MCDN_LOG(LOG_INFO, "Control dock unregistered");

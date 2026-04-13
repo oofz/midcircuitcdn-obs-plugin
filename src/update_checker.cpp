@@ -1,7 +1,7 @@
 /*
- * MidcircuitCDN OBS Plugin — Update Checker (Implementation)
+ * MidCircuitCDN OBS Plugin — Update Checker (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
- * Hits: GET https://api.github.com/repos/oofz/midcircuitcdn-obs-plugin/releases/latest
+ * Hits: GET https://api.github.com/repos/oofz/MidCircuitCDN-obs-plugin/releases/latest
  * Parses: tag_name (e.g. "v0.2.1") and assets[0].browser_download_url
  * Compares against compiled-in PLUGIN_VERSION using semantic versioning.
  *
@@ -28,7 +28,7 @@
 
 static const wchar_t *GITHUB_HOST = L"api.github.com";
 static const wchar_t *GITHUB_PATH =
-	L"/repos/oofz/midcircuitcdn-obs-plugin/releases/latest";
+	L"/repos/oofz/MidCircuitCDN-obs-plugin/releases/latest";
 
 /* ── Constructor ──────────────────────────────────────────────────────── */
 
@@ -115,7 +115,7 @@ QByteArray UpdateChecker::FetchReleaseJson()
 	QByteArray result;
 
 	HINTERNET hSession = WinHttpOpen(
-		L"MidcircuitCDN-OBS-Plugin", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+		L"MidCircuitCDN-OBS-Plugin", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
 		WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 	if (!hSession) {
 		MCDN_LOG(LOG_WARNING, "Update check: WinHttpOpen failed");
@@ -145,7 +145,7 @@ QByteArray UpdateChecker::FetchReleaseJson()
 	WinHttpAddRequestHeaders(
 		hRequest,
 		L"Accept: application/vnd.github+json\r\n"
-		L"User-Agent: MidcircuitCDN-OBS-Plugin\r\n",
+		L"User-Agent: MidCircuitCDN-OBS-Plugin\r\n",
 		(DWORD)-1L, WINHTTP_ADDREQ_FLAG_ADD);
 
 	BOOL sent = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS,

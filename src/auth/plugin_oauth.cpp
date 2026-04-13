@@ -1,11 +1,11 @@
 /*
- * MidcircuitCDN OBS Plugin — OAuth Loopback Server (Implementation)
+ * MidCircuitCDN OBS Plugin — OAuth Loopback Server (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * Manages the full Discord OAuth credential handoff via a temporary local
  * HTTP server. The flow:
  *
  *   1. Bind ephemeral port, generate CSRF state token.
- *   2. Open browser to midcircuitcdn.com/login?plugin_auth_port=PORT&state=STATE
+ *   2. Open browser to MidCircuitCDN.com/login?plugin_auth_port=PORT&state=STATE
  *   3. User completes Discord login on the Next.js frontend.
  *   4. Next.js redirects to http://localhost:PORT/auth?slug=...&key=...&url=...&state=STATE
  *   5. We validate state, extract creds, serve success page, invoke callback.
@@ -53,9 +53,9 @@ static std::mutex g_oauth_mutex;
 
 /* ── Constants ────────────────────────────────────────────────────────────── */
 static const char *MCDN_LOGIN_BASE_URL =
-	"https://midcircuitcdn.com/login";
+	"https://MidCircuitCDN.com/login";
 static const char *MCDN_DEFAULT_SERVER_URL =
-	"rtmp://live.midcircuitcdn.com/live";
+	"rtmp://live.MidCircuitCDN.com/live";
 static const int OAUTH_TIMEOUT_SECONDS = 300; /* 5 minutes */
 
 /* ── Utility: Generate a random hex string for CSRF state ─────────────── */
@@ -145,7 +145,7 @@ static const char *SUCCESS_HTML = R"html(<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>MidcircuitCDN — Connected!</title>
+    <title>MidCircuitCDN — Connected!</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -178,7 +178,7 @@ static const char *SUCCESS_HTML = R"html(<!DOCTYPE html>
 <body>
     <div class="card">
         <div class="check">✅</div>
-        <h1>Connected to MidcircuitCDN</h1>
+        <h1>Connected to MidCircuitCDN</h1>
         <p>Your stream settings have been configured in OBS.<br>You may close this window.</p>
     </div>
 </body>
@@ -189,7 +189,7 @@ static const char *ERROR_HTML = R"html(<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>MidcircuitCDN — Error</title>
+    <title>MidCircuitCDN — Error</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -401,7 +401,7 @@ static void OAuthThreadFunc(OAuthCallback on_success, int timeout_seconds)
 		 * Even if the web frontend is fully compromised
 		 * (DNS hijack, supply chain, rogue deploy), the
 		 * plugin will NEVER send the user's stream to a
-		 * server outside *.midcircuitcdn.com.
+		 * server outside *.MidCircuitCDN.com.
 		 *
 		 * Any unrecognized URL is silently replaced with
 		 * the hardcoded default.
@@ -410,7 +410,7 @@ static void OAuthThreadFunc(OAuthCallback on_success, int timeout_seconds)
 					      ? params["url"]
 					      : "";
 		if (!raw_url.empty() &&
-		    raw_url.find("midcircuitcdn.com") != std::string::npos) {
+		    raw_url.find("MidCircuitCDN.com") != std::string::npos) {
 			creds.server_url = raw_url;
 		} else {
 			if (!raw_url.empty()) {

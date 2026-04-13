@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Stream Config (Implementation)
+ * MidCircuitCDN OBS Plugin — Stream Config (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
  * Programmatically overwrites the OBS streaming service, URL, and key
  * using the OBS C-API.
@@ -31,7 +31,7 @@ void ApplyStreamSettings(const std::string &server_url,
 	 *    which accepts arbitrary server + key.
 	 *    Pass nullptr for hotkey_data — we don't need hotkeys. */
 	obs_service_t *new_service = obs_service_create(
-		"rtmp_custom", "MidcircuitCDN", settings, nullptr);
+		"rtmp_custom", "MidCircuitCDN", settings, nullptr);
 
 	if (new_service) {
 		/* 3. Set as the active streaming service.

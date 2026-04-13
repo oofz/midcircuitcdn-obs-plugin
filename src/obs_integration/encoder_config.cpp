@@ -1,7 +1,7 @@
 /*
- * MidcircuitCDN OBS Plugin — Encoder Config (Implementation)
+ * MidCircuitCDN OBS Plugin — Encoder Config (Implementation)
  * ────────────────────────────────────────────────────────────────────────────
- * Hooks into the video encoder and caps bitrate at the MidcircuitCDN limit.
+ * Hooks into the video encoder and caps bitrate at the MidCircuitCDN limit.
  */
 
 #include "encoder_config.hpp"

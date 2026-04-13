@@ -1,11 +1,11 @@
 /*
- * MidcircuitCDN OBS Plugin
+ * MidCircuitCDN OBS Plugin
  * ────────────────────────────────────────────────────────────────────────────
- * Provides a seamless "Connect Account" experience for MidcircuitCDN users.
+ * Provides a seamless "Connect Account" experience for MidCircuitCDN users.
  * Automatically configures stream URL, key, and caps video bitrate.
  * Supports multistreaming to Twitch, Kick, YouTube, and X.
  *
- * Copyright (C) 2026 MidcircuitCDN
+ * Copyright (C) 2026 MidCircuitCDN
  * Licensed under GPLv2 (required by OBS plugin distribution).
  */
 
@@ -24,17 +24,17 @@
 /* ── OBS Module Boilerplate ─────────────────────────────────────────────── */
 
 OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE("midcircuitcdn-obs-plugin", "en-US")
-OBS_MODULE_AUTHOR("MidcircuitCDN")
+OBS_MODULE_USE_DEFAULT_LOCALE("MidCircuitCDN-obs-plugin", "en-US")
+OBS_MODULE_AUTHOR("MidCircuitCDN")
 
 const char *obs_module_name(void)
 {
-	return "MidcircuitCDN";
+	return "MidCircuitCDN";
 }
 
 const char *obs_module_description(void)
 {
-	return "Connect your MidcircuitCDN account to automatically configure "
+	return "Connect your MidCircuitCDN account to automatically configure "
 	       "stream settings, URL, key, and bitrate cap. "
 	       "Supports multistreaming to Twitch, Kick, YouTube, and X.";
 }
@@ -59,7 +59,7 @@ static void OnFrontendEvent(enum obs_frontend_event event, void *data)
 		PluginCredentials creds;
 		if (LoadCredentials(creds)) {
 			MCDN_LOG(LOG_INFO,
-				 "Stream starting — MidcircuitCDN settings "
+				 "Stream starting — MidCircuitCDN settings "
 				 "already configured for: %s",
 				 creds.stream_slug.c_str());
 		}
@@ -91,13 +91,13 @@ static void OnFrontendEvent(enum obs_frontend_event event, void *data)
 
 bool obs_module_load(void)
 {
-	blog(LOG_INFO, "[MidcircuitCDN] Plugin loaded (version %s)",
+	blog(LOG_INFO, "[MidCircuitCDN] Plugin loaded (version %s)",
 	     PLUGIN_VERSION);
 
-	/* Register "Connect MidcircuitCDN" in the Tools menu */
+	/* Register "Connect MidCircuitCDN" in the Tools menu */
 	RegisterSettingsMenu();
 
-	/* Register "MidcircuitCDN Dashboard" in the Tools menu */
+	/* Register "MidCircuitCDN Dashboard" in the Tools menu */
 	RegisterDashboardDock();
 
 	/* Register native control dock panel */
@@ -118,7 +118,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
-	blog(LOG_INFO, "[MidcircuitCDN] Plugin unloading...");
+	blog(LOG_INFO, "[MidCircuitCDN] Plugin unloading...");
 
 	/* Cancel any in-progress OAuth flow */
 	CancelOAuthFlow();
@@ -128,5 +128,5 @@ void obs_module_unload(void)
 	UnregisterDashboardDock();
 	UnregisterControlDock();
 
-	blog(LOG_INFO, "[MidcircuitCDN] Plugin unloaded");
+	blog(LOG_INFO, "[MidCircuitCDN] Plugin unloaded");
 }

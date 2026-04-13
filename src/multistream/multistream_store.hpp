@@ -1,11 +1,11 @@
 /*
- * MidcircuitCDN OBS Plugin — Multistream Config Store
+ * MidCircuitCDN OBS Plugin — Multistream Config Store
  * ────────────────────────────────────────────────────────────────────────────
  * Data model and persistence for multistream targets.
  * Stores platform enable/disable state and stream keys in OBS's global.ini
- * under the [MidcircuitCDN_Multistream] section.
+ * under the [MidCircuitCDN_Multistream] section.
  *
- * Keys persist across MidcircuitCDN connect/disconnect cycles.
+ * Keys persist across MidCircuitCDN connect/disconnect cycles.
  */
 
 #pragma once

@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Multistream Settings Dialog
+ * MidCircuitCDN OBS Plugin — Multistream Settings Dialog
  * ────────────────────────────────────────────────────────────────────────────
  * Qt modal dialog for configuring multistream targets.
  * Shows 4 platform rows (Twitch, Kick, YouTube, X) each with:

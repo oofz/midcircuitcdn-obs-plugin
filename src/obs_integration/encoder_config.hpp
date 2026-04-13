@@ -1,12 +1,12 @@
 /*
- * MidcircuitCDN OBS Plugin — Encoder Config
+ * MidCircuitCDN OBS Plugin — Encoder Config
  * ────────────────────────────────────────────────────────────────────────────
- * Hooks into the video encoder to cap bitrate at the MidcircuitCDN limit.
+ * Hooks into the video encoder to cap bitrate at the MidCircuitCDN limit.
  */
 
 #pragma once
 
-/* Default bitrate cap for MidcircuitCDN streams (kbps) */
+/* Default bitrate cap for MidCircuitCDN streams (kbps) */
 constexpr int MCDN_TARGET_BITRATE_KBPS = 3000;
 
 /*

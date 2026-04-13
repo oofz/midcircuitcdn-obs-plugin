@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Update Checker
+ * MidCircuitCDN OBS Plugin — Update Checker
  * ────────────────────────────────────────────────────────────────────────────
  * Checks GitHub releases API for newer plugin versions.
  * Uses WinHTTP (Windows native TLS — no Qt SSL plugin needed).

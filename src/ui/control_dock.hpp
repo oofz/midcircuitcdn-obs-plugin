@@ -1,5 +1,5 @@
 /*
- * MidcircuitCDN OBS Plugin — Control Panel Dock Widget (Header)
+ * MidCircuitCDN OBS Plugin — Control Panel Dock Widget (Header)
  * ────────────────────────────────────────────────────────────────────────────
  * A native Qt dock panel that appears in OBS just like the Controls or
  * Scene Transitions panel. Provides 1-click Connect, multistream config,
