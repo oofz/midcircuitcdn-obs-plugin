@@ -22,6 +22,7 @@
 
 #include <obs-module.h>
 #include <obs-frontend-api.h>
+#include <util/config-file.h>
 
 #include <QStyle>
 #include <QFont>
@@ -542,6 +543,29 @@ void RegisterControlDock()
 	if (ok) {
 		MCDN_LOG(LOG_INFO,
 			 "Control dock registered as native panel");
+
+		/*
+		 * Auto-show on first install.
+		 *
+		 * obs_frontend_add_dock_by_id registers the dock but
+		 * it may be hidden by default. We use a config flag
+		 * to show it the first time, then respect whatever
+		 * the user does afterwards (OBS saves dock visibility
+		 * state automatically).
+		 */
+		config_t *cfg = obs_frontend_get_global_config();
+		if (cfg) {
+			bool initialized = config_get_bool(
+				cfg, "MidcircuitCDN", "dock_initialized");
+			if (!initialized) {
+				g_panel->setVisible(true);
+				config_set_bool(cfg, "MidcircuitCDN",
+						"dock_initialized", true);
+				config_save(cfg);
+				MCDN_LOG(LOG_INFO,
+					 "First install — dock auto-shown");
+			}
+		}
 	} else {
 		MCDN_LOG(LOG_WARNING,
 			 "Failed to register control dock — "
