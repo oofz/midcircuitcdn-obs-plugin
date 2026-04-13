@@ -30,6 +30,7 @@
 #include <QApplication>
 #include <QTimer>
 #include <QGroupBox>
+#include <QDockWidget>
 
 /* ── Dark-theme stylesheet matching OBS's look ───────────────────────── */
 static const char *PANEL_STYLE = R"(
@@ -547,23 +548,52 @@ void RegisterControlDock()
 		/*
 		 * Auto-show on first install.
 		 *
-		 * obs_frontend_add_dock_by_id registers the dock but
-		 * it may be hidden by default. We use a config flag
-		 * to show it the first time, then respect whatever
-		 * the user does afterwards (OBS saves dock visibility
-		 * state automatically).
+		 * OBS restores its own dock visibility state AFTER all
+		 * plugins initialize, so calling setVisible(true) now
+		 * or even with QTimer::singleShot(0) gets overridden.
+		 *
+		 * The correct hook is OBS_FRONTEND_EVENT_FINISHED_LOADING
+		 * which fires after OBS has fully restored its UI state.
+		 * We register a one-shot callback here if it's the first
+		 * install, then remove it immediately after showing.
 		 */
 		config_t *cfg = obs_frontend_get_global_config();
 		if (cfg) {
 			bool initialized = config_get_bool(
 				cfg, "MidcircuitCDN", "dock_initialized");
 			if (!initialized) {
-				g_panel->setVisible(true);
 				config_set_bool(cfg, "MidcircuitCDN",
 						"dock_initialized", true);
 				config_save(cfg);
-				MCDN_LOG(LOG_INFO,
-					 "First install — dock auto-shown");
+
+				obs_frontend_add_event_callback(
+					[](enum obs_frontend_event event,
+					   void *) {
+						if (event !=
+						    OBS_FRONTEND_EVENT_FINISHED_LOADING)
+							return;
+						if (!g_panel)
+							return;
+
+						/* Find the QDockWidget wrapper
+						 * that OBS created around our
+						 * panel widget */
+						QWidget *w = g_panel;
+						while (w) {
+							auto *dock = qobject_cast<QDockWidget *>(w);
+							if (dock) {
+								dock->setVisible(true);
+								dock->raise();
+								MCDN_LOG(LOG_INFO, "First install — dock auto-shown via QDockWidget");
+								return;
+							}
+							w = w->parentWidget();
+						}
+						/* Fallback */
+						g_panel->setVisible(true);
+						MCDN_LOG(LOG_INFO, "First install — panel shown (no QDockWidget parent found)");
+					},
+					nullptr);
 			}
 		}
 	} else {
