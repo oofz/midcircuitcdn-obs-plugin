@@ -2,10 +2,8 @@
  * MidcircuitCDN OBS Plugin — Update Checker
  * ────────────────────────────────────────────────────────────────────────────
  * Checks GitHub releases API for newer plugin versions.
+ * Uses WinHTTP (Windows native TLS — no Qt SSL plugin needed).
  * Emits a Qt signal when a newer version is detected.
- *
- * Uses QNetworkAccessManager (non-blocking, runs on Qt event loop).
- * Requires Qt6 — gated behind HAVE_QT.
  */
 
 #pragma once
@@ -14,8 +12,7 @@
 
 #include <QObject>
 #include <QString>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
+#include <QByteArray>
 
 class UpdateChecker : public QObject {
 	Q_OBJECT
@@ -36,16 +33,16 @@ signals:
 	void UpdateAvailable(const QString &version,
 			     const QString &downloadUrl);
 
-private slots:
-	void OnReplyFinished(QNetworkReply *reply);
-
 private:
-	QNetworkAccessManager *m_manager = nullptr;
 	bool m_hasUpdate = false;
 	QString m_latestVersion;
 	QString m_downloadUrl;
 
 	static bool IsNewer(const QString &remote, const QString &local);
+
+#ifdef _WIN32
+	static QByteArray FetchReleaseJson();
+#endif
 };
 
 #endif /* HAVE_QT */

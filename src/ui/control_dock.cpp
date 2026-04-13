@@ -34,6 +34,7 @@
 #include <QDockWidget>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QPixmap>
 
 /* ── Dark-theme stylesheet matching OBS's look ───────────────────────── */
 static const char *PANEL_STYLE = R"(
@@ -364,51 +365,46 @@ void McdnControlPanel::OnUpdateAvailable(const QString &version,
 					 const QString &downloadUrl)
 {
 	if (m_updateBanner)
-		return; /* already showing */
+		return; /* already shown */
 
-	/* Build the banner as a styled QPushButton (easy click handling) */
-	auto *btn = new QPushButton(
-		QString::fromUtf8(
-			"\xe2\xac\x87  Update v%1 available \xe2\x80\x94 "
-			"click to download")
-			.arg(version),
-		this);
-	btn->setObjectName("updateBanner");
-	btn->setCursor(Qt::PointingHandCursor);
-	btn->setStyleSheet(
-		"QPushButton#updateBanner {"
+	/* Hide the plain version label — we're replacing it */
+	if (m_versionLabel)
+		m_versionLabel->setVisible(false);
+
+	/* Build a full-width purple bar that replaces the version row */
+	auto *bar = new QPushButton(this);
+	bar->setObjectName("updateBar");
+	bar->setCursor(Qt::PointingHandCursor);
+	bar->setText(QString("v%1   |   v%2 available — Download")
+			     .arg(PLUGIN_VERSION)
+			     .arg(version));
+	bar->setStyleSheet(
+		"QPushButton#updateBar {"
 		"  background: #7c3aed;"
 		"  color: #ffffff;"
 		"  border: none;"
-		"  border-radius: 4px;"
-		"  padding: 8px 10px;"
-		"  font-size: 11px;"
+		"  border-radius: 0px;"
+		"  padding: 4px 8px;"
+		"  font-size: 10px;"
 		"  font-weight: bold;"
-		"  text-align: left;"
 		"}"
-		"QPushButton#updateBanner:hover {"
+		"QPushButton#updateBar:hover {"
 		"  background: #6d28d9;"
 		"}");
 
 	QString url = downloadUrl;
-	connect(btn, &QPushButton::clicked, this, [url]() {
+	connect(bar, &QPushButton::clicked, this, [url]() {
 		QDesktopServices::openUrl(QUrl(url));
 	});
 
-	m_updateBanner = btn;
+	m_updateBanner = bar;
+	m_mainLayout->addWidget(m_updateBanner);
 
-	/* Insert before version label (second-to-last) */
-	if (m_mainLayout->count() > 0) {
-		int idx = m_mainLayout->indexOf(m_versionLabel);
-		if (idx >= 0)
-			m_mainLayout->insertWidget(idx, m_updateBanner);
-		else
-			m_mainLayout->addWidget(m_updateBanner);
-	}
-
-	/* Update version label to show comparison */
-	m_versionLabel->setText(
-		QString("v%1 (v%2 available)").arg(PLUGIN_VERSION).arg(version));
+	/* Remove bottom margin so the bar goes edge-to-edge */
+	m_mainLayout->setContentsMargins(
+		m_mainLayout->contentsMargins().left(),
+		m_mainLayout->contentsMargins().top(),
+		m_mainLayout->contentsMargins().right(), 0);
 }
 
 /* ── Clear dynamic widgets (keep title) ───────────────────────────────── */

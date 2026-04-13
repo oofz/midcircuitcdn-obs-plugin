@@ -4,6 +4,9 @@
  * Hits: GET https://api.github.com/repos/oofz/midcircuitcdn-obs-plugin/releases/latest
  * Parses: tag_name (e.g. "v0.2.1") and assets[0].browser_download_url
  * Compares against compiled-in PLUGIN_VERSION using semantic versioning.
+ *
+ * Uses WinHTTP on a background thread (no Qt SSL/TLS dependency needed).
+ * Falls back gracefully if the network is unavailable.
  */
 
 #ifdef HAVE_QT
@@ -15,94 +18,179 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QUrl>
-#include <QNetworkRequest>
+#include <QThread>
 
-static const char *GITHUB_API_URL =
-	"https://api.github.com/repos/oofz/midcircuitcdn-obs-plugin"
-	"/releases/latest";
+#ifdef _WIN32
+#include <windows.h>
+#include <winhttp.h>
+#pragma comment(lib, "winhttp.lib")
+#endif
+
+static const wchar_t *GITHUB_HOST = L"api.github.com";
+static const wchar_t *GITHUB_PATH =
+	L"/repos/oofz/midcircuitcdn-obs-plugin/releases/latest";
 
 /* ── Constructor ──────────────────────────────────────────────────────── */
 
 UpdateChecker::UpdateChecker(QObject *parent) : QObject(parent)
 {
-	m_manager = new QNetworkAccessManager(this);
-	connect(m_manager, &QNetworkAccessManager::finished, this,
-		&UpdateChecker::OnReplyFinished);
 }
 
-/* ── Fire the check ───────────────────────────────────────────────────── */
+/* ── Fire the check (runs network on background thread) ───────────────── */
 
 void UpdateChecker::CheckForUpdate()
 {
-	QUrl url(QString::fromLatin1(GITHUB_API_URL));
-	QNetworkRequest req(url);
-	req.setHeader(QNetworkRequest::UserAgentHeader,
-		      QString::fromLatin1("MidcircuitCDN-OBS-Plugin/" PLUGIN_VERSION));
-	req.setRawHeader("Accept", "application/vnd.github+json");
-	m_manager->get(req);
-
 	MCDN_LOG(LOG_INFO, "Update check started (current: v%s)",
 		 PLUGIN_VERSION);
+
+#ifdef _WIN32
+	/* Run on a background thread to avoid blocking the UI */
+	QThread *thread = QThread::create([this]() {
+		QByteArray data = FetchReleaseJson();
+		if (data.isEmpty())
+			return;
+
+		/* Parse JSON on the background thread */
+		QJsonDocument doc = QJsonDocument::fromJson(data);
+		if (!doc.isObject()) {
+			MCDN_LOG(LOG_WARNING,
+				 "Update check: invalid JSON response");
+			return;
+		}
+
+		QJsonObject obj = doc.object();
+
+		QString tagName = obj["tag_name"].toString();
+		QString remoteVersion = tagName;
+		if (remoteVersion.startsWith("v") ||
+		    remoteVersion.startsWith("V"))
+			remoteVersion = remoteVersion.mid(1);
+
+		QString downloadUrl = obj["html_url"].toString();
+		QJsonArray assets = obj["assets"].toArray();
+		if (!assets.isEmpty()) {
+			QJsonObject firstAsset = assets[0].toObject();
+			QString assetUrl =
+				firstAsset["browser_download_url"].toString();
+			if (!assetUrl.isEmpty())
+				downloadUrl = assetUrl;
+		}
+
+		QString localVersion = PLUGIN_VERSION;
+		if (IsNewer(remoteVersion, localVersion)) {
+			m_hasUpdate = true;
+			m_latestVersion = remoteVersion;
+			m_downloadUrl = downloadUrl;
+
+			MCDN_LOG(LOG_INFO, "Update available: v%s -> v%s",
+				 PLUGIN_VERSION,
+				 remoteVersion.toUtf8().constData());
+
+			/* Emit on the main thread via queued connection */
+			QMetaObject::invokeMethod(
+				this,
+				[this, remoteVersion, downloadUrl]() {
+					emit UpdateAvailable(remoteVersion,
+							     downloadUrl);
+				},
+				Qt::QueuedConnection);
+		} else {
+			MCDN_LOG(LOG_INFO, "Plugin is up to date (v%s)",
+				 PLUGIN_VERSION);
+		}
+	});
+
+	connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+	thread->start();
+#else
+	MCDN_LOG(LOG_INFO, "Update check not supported on this platform");
+#endif
 }
 
-/* ── Handle the response ──────────────────────────────────────────────── */
+/* ── WinHTTP-based fetch (no Qt SSL needed) ───────────────────────────── */
 
-void UpdateChecker::OnReplyFinished(QNetworkReply *reply)
+#ifdef _WIN32
+QByteArray UpdateChecker::FetchReleaseJson()
 {
-	reply->deleteLater();
+	QByteArray result;
 
-	if (reply->error() != QNetworkReply::NoError) {
-		MCDN_LOG(LOG_WARNING, "Update check failed: %s",
-			 reply->errorString().toUtf8().constData());
-		return;
+	HINTERNET hSession = WinHttpOpen(
+		L"MidcircuitCDN-OBS-Plugin", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+		WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!hSession) {
+		MCDN_LOG(LOG_WARNING, "Update check: WinHttpOpen failed");
+		return result;
 	}
 
-	QByteArray data = reply->readAll();
-	QJsonDocument doc = QJsonDocument::fromJson(data);
-	if (!doc.isObject()) {
+	HINTERNET hConnect = WinHttpConnect(hSession, GITHUB_HOST,
+					    INTERNET_DEFAULT_HTTPS_PORT, 0);
+	if (!hConnect) {
+		MCDN_LOG(LOG_WARNING, "Update check: WinHttpConnect failed");
+		WinHttpCloseHandle(hSession);
+		return result;
+	}
+
+	HINTERNET hRequest = WinHttpOpenRequest(
+		hConnect, L"GET", GITHUB_PATH, NULL, WINHTTP_NO_REFERER,
+		WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+	if (!hRequest) {
 		MCDN_LOG(LOG_WARNING,
-			 "Update check: invalid JSON response");
-		return;
+			 "Update check: WinHttpOpenRequest failed");
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return result;
 	}
 
-	QJsonObject obj = doc.object();
+	/* Add headers */
+	WinHttpAddRequestHeaders(
+		hRequest,
+		L"Accept: application/vnd.github+json\r\n"
+		L"User-Agent: MidcircuitCDN-OBS-Plugin\r\n",
+		(DWORD)-1L, WINHTTP_ADDREQ_FLAG_ADD);
 
-	/* Extract version from tag_name (strip leading "v") */
-	QString tagName = obj["tag_name"].toString();
-	QString remoteVersion = tagName;
-	if (remoteVersion.startsWith("v") || remoteVersion.startsWith("V"))
-		remoteVersion = remoteVersion.mid(1);
-
-	/* Extract download URL from first asset, or fallback to html_url */
-	QString downloadUrl = obj["html_url"].toString();
-	QJsonArray assets = obj["assets"].toArray();
-	if (!assets.isEmpty()) {
-		QJsonObject firstAsset = assets[0].toObject();
-		QString assetUrl =
-			firstAsset["browser_download_url"].toString();
-		if (!assetUrl.isEmpty())
-			downloadUrl = assetUrl;
+	BOOL sent = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS,
+				       0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+	if (!sent) {
+		MCDN_LOG(LOG_WARNING,
+			 "Update check: WinHttpSendRequest failed");
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return result;
 	}
 
-	/* Compare versions */
-	QString localVersion = PLUGIN_VERSION;
-	if (IsNewer(remoteVersion, localVersion)) {
-		m_hasUpdate = true;
-		m_latestVersion = remoteVersion;
-		m_downloadUrl = downloadUrl;
-
-		MCDN_LOG(LOG_INFO,
-			 "Update available: v%s → v%s",
-			 PLUGIN_VERSION,
-			 remoteVersion.toUtf8().constData());
-
-		emit UpdateAvailable(remoteVersion, downloadUrl);
-	} else {
-		MCDN_LOG(LOG_INFO, "Plugin is up to date (v%s)",
-			 PLUGIN_VERSION);
+	BOOL received = WinHttpReceiveResponse(hRequest, NULL);
+	if (!received) {
+		MCDN_LOG(LOG_WARNING,
+			 "Update check: WinHttpReceiveResponse failed");
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return result;
 	}
+
+	/* Read response body */
+	DWORD bytesAvailable = 0;
+	do {
+		WinHttpQueryDataAvailable(hRequest, &bytesAvailable);
+		if (bytesAvailable == 0)
+			break;
+
+		QByteArray chunk(bytesAvailable, 0);
+		DWORD bytesRead = 0;
+		WinHttpReadData(hRequest, chunk.data(), bytesAvailable,
+				&bytesRead);
+		chunk.resize(bytesRead);
+		result.append(chunk);
+	} while (bytesAvailable > 0);
+
+	WinHttpCloseHandle(hRequest);
+	WinHttpCloseHandle(hConnect);
+	WinHttpCloseHandle(hSession);
+
+	return result;
 }
+#endif
 
 /* ── Semantic version comparison ──────────────────────────────────────── */
 
